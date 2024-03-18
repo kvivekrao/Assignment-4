@@ -1,0 +1,202 @@
+---
+title: "ASSIGNMENT-4"
+author: "vivek rao kathheragandla"
+date: "2024-03-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("tidyverse")
+library("ISLR")
+library("factoextra")
+library("flexclust")
+library("ggplot2")
+library("dplyr")
+library("caret")
+```
+
+#applying the knit functions
+```{r}
+data_pharma <- read.csv("C:\\Users\\KATHHERAGANDLA VIVEK\\OneDrive\\Documents\\FML\\Assignment_4\\Pharmaceuticals (1).csv") 
+head(data_pharma)
+summary(data_pharma)
+```
+***
+##QUESTION-A - Use only the numerical variables (1 to 9) to cluster the 21 firms. Justify the 
+various choices made in conducting the cluster analysis, such as weights for different variables, the specific clustering algorithm(s) used, the number of clusters formed, and so on.
+```{r}
+#Performing z-score scaling for the pahrmaceuticals dataframe 
+Scaling_pharma_data <- scale(data_pharma[,3:11])
+summary(Scaling_pharma_data)
+```
+```{r}
+#Performing range scaling for the the dataframe 
+range_pharma <- scale(data_pharma[,3:11])
+#summarizing the scaled data frame
+summary(range_pharma)
+```
+
+```{r}
+#applying K-means clustering for the scaled data
+kmeans_1 <- kmeans(Scaling_pharma_data, centers = 5, nstart = 25)
+#visualizing the clusters on agraph
+fviz_cluster(kmeans_1, data = Scaling_pharma_data)
+
+```
+```{r}
+#Assuming kmeans_1 contains the results of your k-means clustering
+print(kmeans_1)
+```
+##OVERVIEW of the K-means Clustering:-
+##The summary function performed on the k-means data gives the infromation on 9 variables for the 21 pharmaceutical companies. There are a total of 5 clusters with 5 centeroid points and the sizes of the clusters are (2, 3, 4, 4, 8).
+
+***
+##QUESTION-B - Interpret the clusters with respect to the numerical variables used in forming the clusters.
+
+```{r}
+#plotting the number of clusters vs the total value
+fviz_nbclust(Scaling_pharma_data, kmeans, method = "wss")
+```
+** Here in this plot we can clearly see that the graph is not forming an elbow shape and it is getting flattened slightly at k=4 and k=6
+```{r}
+#figuring ou the number of optimal clusters by plotting the number of clusters
+#against average silhoutte width
+fviz_nbclust(Scaling_pharma_data, kmeans, method = "silhouette")
+```
+
+##By judging from the silhoutte graph we easily conclude that 5 clusters is the best and optimal solution for this k-means clustering.
+
+***
+
+##QUESTION-C - Is there a pattern in the clusters with respect to the numerical variables (10 
+to 12)? (those not used in forming the clusters)
+```{r}
+#Calculating the mean value from the actual data that is plotted in the clusters
+#perfroming the aggregate function for the pharma data
+aggregate(data_pharma[3:11], by=list(cluster=kmeans_1$cluster), mean)
+
+```
+```{r}
+#perfroming the merging of the data frames using cbind
+temp_data <- cbind(data_pharma, cluster = kmeans_1$cluster)
+tibble(temp_data)
+```
+
+```{r}
+#Summarizing the detailed beakdown by cluster
+by(temp_data, factor(temp_data$cluster), summary)
+```
+```{r}
+#median calculation 
+recommend_table <- table(temp_data$cluster, temp_data$Median_Recommendation)
+names(dimnames(recommend_table)) <- c("Cluster", "Recommendation")
+recommend_table <- addmargins(recommend_table)
+recommend_table
+```
+
+##One strong buy, seven moderate buys, nine holds, and four moderate sells make the total number of 21 recommendations. All four recommendations, including the opposite advice on buys and sells, are mixed together in Cluster 5. Only mod purchase and hold information can be found in Clusters 1, 2, and 3.Both a moderate buy and moderate sell recommendation are present for Cluster 4.
+```{r}
+#Location of firm headquarter's breakdown of clusters based on the merged data
+location_data <- table(temp_data$cluster, temp_data$Location)
+names(dimnames(location_data)) <- c("Cluster", "Location")
+location_data <- addmargins(location_data)
+location_data
+```
+##There are 21 firms in all, with 13 in the US, 3 in the UK, and 1 each in Canada, France,Germany,Ireland, and Switzerland. US, UK, and Switzerland are all featured in Cluster 5. Germany and the US are in Cluster 2. US and Canada are in Cluster 1. 
+US and Britain are in Cluster 3.The US, France, and Ireland make up Cluster 4.
+```{r}
+
+#summarizing the stock exchange values for each cluster
+#creating a data frame for the merged data and initializing the exchange table
+exchange_table <- table(temp_data$cluster, temp_data$Exchange)
+names(dimnames(exchange_table)) <- c("Cluster", "Exchange")
+exchange_table <- addmargins(exchange_table)
+exchange_table
+```
+##There are 21 companies overall, divided into 1 Amex, 1 Nasdaq, and 19 NYSE. Cluster 5 just has the NYSE. All three are in Cluster 2. clusters 1,3,4 all contains only NYSE.
+
+***
+
+##QUESTION-D - Provide an appropriate name for each cluster using any or all of the 
+variables in the dataset.
+
+ANSWER :- 
+Cluster 1: - The cluster 3 can be named as “Small_Net_Profit_Margin-High PE 
+ratio”. All are NAM companies.
+
+Cluster 2: The cluster number 2 can be named “Low_Market_Cap & Less_ROA” - Hold or Buy 
+exchanges.
+
+Cluster 3: The cluster 4 can be named “High Market Cap - more RoE - more RoA- High Asset 
+Turnover- more NetProfitMargin” - All are the Hold or Buy US companies that are part of 
+NYSE.
+
+Cluster 4: The cluster 4 can be named as “least PE ratio & low RoE & Minimum Asset 
+Turnover- High revenue growth - mixed recommendation. All are US or European 
+companies that belongs to NYSE.
+
+Cluster 5: The cluster number 5 can be named as “Least_Revenue_growth”. It mostly 
+comprised of US companies and all are NYSE.
+
+##Also Trying or Exploring the other algorithms whether they can perform better 
+clustering or not? 
+```{r}
+#Assuming range_pharma is your pharmaceutical dataset
+#Visualize the number of clusters using the silhouette method with k-means
+fviz_nbclust(range_pharma, FUN = kmeans, method = "silhouette")
+```
+
+```{r}
+#Assuming range_pharma_data is your pharmaceutical dataset
+#Visualize the number of clusters using the within-cluster sum of squares method with k-means
+fviz_nbclust(range_pharma, kmeans, method = "wss")
+```
+
+PLOTTING THE KMEANS AND THE CLUSTERS
+
+```{r}
+# Perform kernel k-means clustering
+kmeans_2 = kcca(Scaling_pharma_data, k=5, kccaFamily("kmeans"))
+kmeans_2
+```
+
+```{r}
+# Extract cluster assignments from the kernel k-means clustering object
+clusters(kmeans_2)
+```
+
+```{r}
+#Applying the predict() function
+clusters_index <- predict(kmeans_2)
+image(kmeans_2)
+points(Scaling_pharma_data, col=clusters_index, pch=19, cex=1.0)
+```
+
+##Instead of utilising the kmeans function from base R, we perform a kmeans cluster on k = 5 here utilising the kcca method. In comparison to the base R method, the clustering has the same size but a distinct assignment between the points. The clustering graph shows that there is more ambiguity in the grouping than we would want, especially between groups 1, 2, and 3.
+
+PLOTTING THE KMEDIANS AND THE CLUSTERS.
+```{r}
+# Perform kernel k-means clustering with k-medians algorithm
+kmeans_2 = kcca(Scaling_pharma_data, k=5, kccaFamily("kmedians"))
+kmeans_2
+```
+
+```{r}
+# Extract cluster assignments from the kernel k-means clustering object
+clusters(kmeans_2)
+```
+
+```{r}
+# Predict cluster assignments for each data point
+clusters_index <- predict(kmeans_2)
+# Plot the image representation of the clustering
+image(kmeans_2)
+# Add points to the plot with cluster assignments
+points(Scaling_pharma_data, col=clusters_index, pch=19, cex=1.0)
+```
+
+##The five clusters have sizes of 4, 5, 3, 3, and 6 if we convert the KCC to Kmeans. However, the clustering is less noticeable. Although we are looking into the additional data to see if there are any better methods or resources we can employ to improve the visual cluster, it's not obvious if a better cluster is truly possible.
